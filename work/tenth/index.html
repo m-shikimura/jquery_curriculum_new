@@ -42,19 +42,115 @@
       // $.ajax({}) 外部ファイルやURLに対してデータをリクエストすることができます。
       // 以下は今回使う$.ajaxの基本的な形です。
       //
-      // $.ajax({
-      //   url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
-      //   type: 'GET',
-      //   datatype: 'json',
-      //   data: {
-      //     // 「区分:サービス固有パラメーター」を確認して、必要な情報をdata内に入れましょう。
-      //     applicationId: appId, (今回はこの変数をIDとして使用します) ※メンターから別途渡されるファイルを読み込んでください。
-      //     booksGenreId: '001'
-      //   },
-      // }).done(function(data) {
-      //   // この中にデータ取得後の動きを記述していきます。
-      //   console.log(data);
-      // });
+      $(function() {
+        $('.search__btn').on('click', function() {
+          click_search_btn();
+        });
+        $('[data-js="page-prev"],[data-js="page-next"]').on('click', function(e) {
+            e.preventDefault();
+
+            if ($('a').hasClass(disabled)) {
+              console.log('disabledある');
+            } else {
+              click_search_btn();
+            }
+          });
+
+        function click_search_btn() {
+          var searchWord = $('.search__text__input').val();
+          var currentPage = 1;
+          $.ajax({
+            url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
+            type: 'GET',
+            datatype: 'json',
+            data: {
+              // 「区分:サービス固有パラメーター」を確認して、必要な情報をdata内に入れましょう。
+              applicationId: appId, //(今回はこの変数をIDとして使用します) ※メンターから別途渡されるファイルを読み込んでください。
+              booksGenreId: '001',
+              keyword: searchWord,
+              hits: 20,
+              page: currentPage,
+            },
+          }).done(function(data) {
+            // この中にデータ取得後の動きを記述していきます。
+            console.log(data);
+            $('.lists').empty();
+            if (data.count > 0) {
+              search_results(data);
+              page_count(data);
+            } else if (data.count === 0){
+              hits_none();
+            }
+          }).fail(function(data) {
+
+          });
+        };
+
+        function search_results(data) {
+          $.each(data.Items, function(i,item) {
+            var list = '<li class="lists__item">' +
+                          '<div class="lists__item__inner">' +
+                            '<a href="' + item.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
+                              '<img src="' + item.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
+                              '<p class="lists__item__detail">作品名：' + item.Item.title + '</p>' +
+                              '<p class="lists__item__detail">作者　：' + item.Item.author + '</p>' +
+                              '<p class="lists__item__detail">出版社：' + item.Item.publisherName + '</p>' +
+                            '</a>' +
+                          '</div>' +
+                        '</li>';
+
+            $('.lists').append(list);
+          });
+        };
+
+        function page_count(data) {
+          var pages = '<div class="pager" data-js="pager">' +
+                          '<div class="counter">' +
+                            '<span class="counter-current">' + data.page + '</span>/<span class="counter-all">' + data.pageCount + '</span>' +
+                          '</div>' +
+                          '<div class="btn-wrapper">' +
+                            '<a class="btn-item" data-js="page-prev" href="">前へ</a>' +
+                            '<a class="btn-item" data-js="page-next" href="">次へ</a>' +
+                          '</div>' +
+                        '</div>';
+          
+          $('.pager').remove();
+          $('.lists').after(pages);
+
+          if (data.pageCount === 1) {
+            $('[data-js="page-prev"],[data-js="page-next"]').addClass('disabled');
+          } else if (data.page === 1) {
+            console.log($('.btn-item').data('js', 'page-prev'));
+            $('[data-js="page-prev"]').addClass('disabled');
+          } else if (data.page === data.pageCount) {
+            $('[data-js="page-next"]').addClass('disabled');
+          }
+        };
+
+      //  $('[data-js="page-prev"]').click(function() {
+      //      data.page -= 1;
+      //    });
+      //
+      //    $('[data-js="page-next"]').click(function() {
+      //      data.page += 1;
+      //    });
+
+        function hits_none() {
+          $('.message').append('<p class="message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>');
+        };
+
+        function error400() {
+          $('.message').append('<p class="message">検索文字が入力されていません。</p>');
+        };
+
+        function error429() {
+          $('.message').append('<p class="message">リクエスト過多です。しばらく時間を置いてからお試しください。</p>');
+        };
+
+        function error_internet_disconnected() {
+          $('.message').append('<p class="message">通信に失敗しました。インターネットの接続をご確認ください。</p>');
+        };
+      });
       //
       //
       // $.ajaxによってデータが取得できたら、必要なデータ(作品名とか作者名とか)を取得します。
