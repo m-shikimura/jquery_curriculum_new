@@ -44,21 +44,35 @@
       //
       $(function() {
         $('.search__btn').on('click', function() {
-          click_search_btn();
-        });
-        $('[data-js="page-prev"],[data-js="page-next"]').on('click', function(e) {
-            e.preventDefault();
+          var currentPage = 1;
+          click_search_btn(currentPage);
+          console.log(currentPage);
 
-            if ($('a').hasClass(disabled)) {
-              console.log('disabledある');
-            } else {
-              click_search_btn();
+          $(document).on('click', '[data-js="page-prev"]',function(e) {
+            e.preventDefault();
+            if (!$('[data-js="page-prev"]').hasClass('disabled')) {
+              console.log('前へボタン押した');
+              var currentPage = currentPage - 1;
+              console.log(currentPage);
+              click_search_btn(currentPage);
             }
           });
 
-        function click_search_btn() {
+          $(document).on('click', '[data-js="page-next"]',function(e) {
+            e.preventDefault();
+            if (!$('[data-js="page-next"]').hasClass('disabled')) {
+              console.log('次へボタン押した');
+              var currentPage = currentPage + 1;
+              console.log(currentPage);
+              click_search_btn(currentPage);
+            }
+          });
+
+        });
+        
+
+        function click_search_btn(currentPage) {
           var searchWord = $('.search__text__input').val();
-          var currentPage = 1;
           $.ajax({
             url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
             type: 'GET',
@@ -85,7 +99,7 @@
 
           });
         };
-
+        
         function search_results(data) {
           $.each(data.Items, function(i,item) {
             var list = '<li class="lists__item">' +
@@ -127,13 +141,6 @@
           }
         };
 
-      //  $('[data-js="page-prev"]').click(function() {
-      //      data.page -= 1;
-      //    });
-      //
-      //    $('[data-js="page-next"]').click(function() {
-      //      data.page += 1;
-      //    });
 
         function hits_none() {
           $('.message').append('<p class="message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>');
