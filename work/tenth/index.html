@@ -49,40 +49,43 @@
         $('[data-js="search-btn"]').on('click', function() {
           searchWord = $('[data-js="search-word"]').val();
           currentPage = 1;
-          $('.lists, .message').empty();
-          $('[data-js="pager"]').remove();
+          resetPage();
           searchBooks();
         });
 
         //前へボタン押す
         $(document).on('click', '[data-js="page-prev"]',function(e) {
           e.preventDefault();
-          if (!$('[data-js="page-prev"]').hasClass('disabled')) {
-            $(window).scrollTop(0);
-            $('.lists, .message').empty();
-            $('[data-js="pager"]').remove();
-            currentPage = currentPage - 1;
-            searchBooks(currentPage);
+
+          if ($('[data-js="page-prev"]').hasClass('disabled')) {
+            return false;
           }
+
+          $(window).scrollTop(0);
+          resetPage();
+          currentPage--;
+          searchBooks(currentPage);
         });
 
         //次へボタン押す
         $(document).on('click', '[data-js="page-next"]',function(e) {
           e.preventDefault();
-          if (!$('[data-js="page-next"]').hasClass('disabled')) {
-            $(window).scrollTop(0);
-            $('.lists, .message').empty();
-            $('[data-js="pager"]').remove();
-            currentPage = currentPage + 1;
-            searchBooks(currentPage);
+
+          if ($('[data-js="page-next"]').hasClass('disabled')) {
+            return false;
           }
+
+          $(window).scrollTop(0);
+          resetPage();
+          currentPage++;
+          searchBooks(currentPage);
         });
         
 
         function searchBooks(currentPage) {
           $.ajax({
             url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
-            type: 'GET',
+            type: 'POST',
             datatype: 'json',
             data: {
               // 「区分:サービス固有パラメーター」を確認して、必要な情報をdata内に入れましょう。
@@ -109,9 +112,9 @@
 
         //検索結果の表示
         function searchResultsShow(data) {
-          var lists = '';
+          var list = '';
           $.each(data.Items, function(i,item) {
-            var list = '<li class="lists__item">' +
+            list += '<li class="lists__item">' +
                           '<div class="lists__item__inner">' +
                             '<a href="' + item.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
                               '<img src="' + item.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
@@ -121,9 +124,8 @@
                             '</a>' +
                           '</div>' +
                         '</li>';
-            lists += list;
           });
-          $('.lists').append(lists);
+          $('.lists').append(list);
         };
 
         //ページャの表示
@@ -140,11 +142,11 @@
           
           $('.lists').after(pages);
 
-          if (data.pageCount === 1) {
-            $('[data-js="page-prev"],[data-js="page-next"]').addClass('disabled');
-          } else if (data.page === 1) {
+          var initialPage = 1;
+          if (data.page === initialPage) {
             $('[data-js="page-prev"]').addClass('disabled');
-          } else if (data.page === data.pageCount) {
+          }
+          if (data.page === data.pageCount) {
             $('[data-js="page-next"]').addClass('disabled');
           }
         };
@@ -155,75 +157,60 @@
         };
 
         //エラー関数
-        function errors(error) {
-          switch (error.status) {
-            case 0:
-              error0();
-              break;
-
-            case 400:
-              error400();
-              break;
-
-            case 404:
-              error404();
-              break;
-
-            case 429:
-              error429();
-              break;
-
-            case 500:
-              error500();
-              break;
-
-            case 503:
-              error503();
-              break;
-
-            default:
-              errorDefault();
-              break;
-          }
-        };
-
         function errorMessageShow(errorMessage) {
           $('.message').append('<p class="message">' + errorMessage + '</p>');
         };
 
-        function error0() {
-          var errorMessage0 = '通信に失敗しました。インターネットの接続をご確認ください。';
-          errorMessageShow(errorMessage0);
+        var errorMessage0 = '通信に失敗しました。インターネットの接続をご確認ください。';
+
+        var errorMessage400 = '検索文字が入力されていません。';
+
+        var errorMessage404 = '検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。';
+
+        var errorMessage429 = 'リクエスト過多です。しばらく時間を置いてからお試しください。';
+
+        var errorMessage500 = 'システムエラーが発生しています。しばらく時間を置いてからお試しください。';
+
+        var errorMessage503 = 'メンテナンス中です。しばらく時間を置いてからお試しください。';
+
+        var errorMessageDefault = '予期せぬエラーが発生しました。しばらく時間を置いてからお試しください。';
+
+        function errors(error) {
+          switch (error.status) {
+            case 0:
+              errorMessageShow(errorMessage0);
+              break;
+
+            case 400:
+              errorMessageShow(errorMessage400);
+              break;
+
+            case 404:
+              errorMessageShow(errorMessage404);
+              break;
+
+            case 429:
+              errorMessageShow(errorMessage429);
+              break;
+
+            case 500:
+              errorMessageShow(errorMessage500);
+              break;
+
+            case 503:
+              errorMessageShow(errorMessage503);
+              break;
+
+            default:
+              errorMessageShow(errorMessageDefault);
+              break;
+          }
         };
 
-        function error400() {
-          var errorMessage400 = '検索文字が入力されていません。';
-          errorMessageShow(errorMessage400);
-        };
-
-        function error404() {
-          var errorMessage404 = '検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。';
-          errorMessageShow(errorMessage404);
-        };
-
-        function error429() {
-          var errorMessage429 = 'リクエスト過多です。しばらく時間を置いてからお試しください。';
-          errorMessageShow(errorMessage429);
-        };
-
-        function error500() {
-          var errorMessage500 = 'システムエラーが発生しています。しばらく時間を置いてからお試しください。';
-          errorMessageShow(errorMessage500);
-        };
-
-        function error503() {
-          var errorMessage503 = 'メンテナンス中です。しばらく時間を置いてからお試しください。';
-          errorMessageShow(errorMessage503);
-        };
-
-        function errorDefault() {
-          var errorMessageDefault = '予期せぬエラーが発生しました。しばらく時間を置いてからお試しください。';
-          errorMessageShow(errorMessageDefault);
+        //検索結果、ページャ、エラー表示を消す
+        function resetPage() {
+          $('.lists, .message').empty();
+          $('[data-js="pager"]').remove();
         };
       });
       //
