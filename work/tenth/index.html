@@ -109,8 +109,9 @@
 
         //検索結果の表示
         function searchResultsShow(data) {
+          var lists = '';
           $.each(data.Items, function(i,item) {
-            list = '<li class="lists__item">' +
+            var list = '<li class="lists__item">' +
                           '<div class="lists__item__inner">' +
                             '<a href="' + item.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
                               '<img src="' + item.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
@@ -120,8 +121,9 @@
                             '</a>' +
                           '</div>' +
                         '</li>';
+            lists += list;
           });
-          $('.lists').append(list);
+          $('.lists').append(lists);
         };
 
         //ページャの表示
