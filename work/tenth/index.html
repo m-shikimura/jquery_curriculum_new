@@ -43,36 +43,43 @@
       // 以下は今回使う$.ajaxの基本的な形です。
       //
       $(function() {
-        $('.search__btn').on('click', function() {
-          var currentPage = 1;
-          click_search_btn(currentPage);
-          console.log(currentPage);
+        var currentPage = 0;
 
-          $(document).on('click', '[data-js="page-prev"]',function(e) {
-            e.preventDefault();
-            if (!$('[data-js="page-prev"]').hasClass('disabled')) {
-              console.log('前へボタン押した');
-              var currentPage = currentPage - 1;
-              console.log(currentPage);
-              click_search_btn(currentPage);
-            }
-          });
+        //検索するボタン押す
+        $('[data-js="search-btn"]').on('click', function() {
+          searchWord = $('[data-js="search-word"]').val();
+          currentPage = 1;
+          $('.lists, .message').empty();
+          $('[data-js="pager"]').remove();
+          searchBooks();
+        });
 
-          $(document).on('click', '[data-js="page-next"]',function(e) {
-            e.preventDefault();
-            if (!$('[data-js="page-next"]').hasClass('disabled')) {
-              console.log('次へボタン押した');
-              var currentPage = currentPage + 1;
-              console.log(currentPage);
-              click_search_btn(currentPage);
-            }
-          });
+        //前へボタン押す
+        $(document).on('click', '[data-js="page-prev"]',function(e) {
+          e.preventDefault();
+          if (!$('[data-js="page-prev"]').hasClass('disabled')) {
+            $(window).scrollTop(0);
+            $('.lists, .message').empty();
+            $('[data-js="pager"]').remove();
+            currentPage = currentPage - 1;
+            searchBooks(currentPage);
+          }
+        });
 
+        //次へボタン押す
+        $(document).on('click', '[data-js="page-next"]',function(e) {
+          e.preventDefault();
+          if (!$('[data-js="page-next"]').hasClass('disabled')) {
+            $(window).scrollTop(0);
+            $('.lists, .message').empty();
+            $('[data-js="pager"]').remove();
+            currentPage = currentPage + 1;
+            searchBooks(currentPage);
+          }
         });
         
 
-        function click_search_btn(currentPage) {
-          var searchWord = $('.search__text__input').val();
+        function searchBooks(currentPage) {
           $.ajax({
             url: 'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522',
             type: 'GET',
@@ -88,21 +95,22 @@
           }).done(function(data) {
             // この中にデータ取得後の動きを記述していきます。
             console.log(data);
-            $('.lists').empty();
             if (data.count > 0) {
-              search_results(data);
-              page_count(data);
-            } else if (data.count === 0){
-              hits_none();
+              searchResultsShow(data);
+              pageCountShow(data);
+            } else if (data.count === 0) {
+              hitsNone();
             }
-          }).fail(function(data) {
-
+          }).fail(function(error) {
+            console.log(error);
+            errors(error);
           });
         };
-        
-        function search_results(data) {
+
+        //検索結果の表示
+        function searchResultsShow(data) {
           $.each(data.Items, function(i,item) {
-            var list = '<li class="lists__item">' +
+            list = '<li class="lists__item">' +
                           '<div class="lists__item__inner">' +
                             '<a href="' + item.Item.itemUrl + '" class="lists__item__link" target="_blank">' +
                               '<img src="' + item.Item.largeImageUrl + '" class="lists__item__img" alt="">' +
@@ -112,12 +120,12 @@
                             '</a>' +
                           '</div>' +
                         '</li>';
-
-            $('.lists').append(list);
           });
+          $('.lists').append(list);
         };
 
-        function page_count(data) {
+        //ページャの表示
+        function pageCountShow(data) {
           var pages = '<div class="pager" data-js="pager">' +
                           '<div class="counter">' +
                             '<span class="counter-current">' + data.page + '</span>/<span class="counter-all">' + data.pageCount + '</span>' +
@@ -128,34 +136,92 @@
                           '</div>' +
                         '</div>';
           
-          $('.pager').remove();
           $('.lists').after(pages);
 
           if (data.pageCount === 1) {
             $('[data-js="page-prev"],[data-js="page-next"]').addClass('disabled');
           } else if (data.page === 1) {
-            console.log($('.btn-item').data('js', 'page-prev'));
             $('[data-js="page-prev"]').addClass('disabled');
           } else if (data.page === data.pageCount) {
             $('[data-js="page-next"]').addClass('disabled');
           }
         };
 
-
-        function hits_none() {
+        //検索結果が0の場合
+        function hitsNone() {
           $('.message').append('<p class="message">検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。</p>');
         };
 
+        //エラー関数
+        function errors(error) {
+          switch (error.status) {
+            case 0:
+              error0();
+              break;
+
+            case 400:
+              error400();
+              break;
+
+            case 404:
+              error404();
+              break;
+
+            case 429:
+              error429();
+              break;
+
+            case 500:
+              error500();
+              break;
+
+            case 503:
+              error503();
+              break;
+
+            default:
+              errorDefault();
+              break;
+          }
+        };
+
+        function errorMessageShow(errorMessage) {
+          $('.message').append('<p class="message">' + errorMessage + '</p>');
+        };
+
+        function error0() {
+          var errorMessage0 = '通信に失敗しました。インターネットの接続をご確認ください。';
+          errorMessageShow(errorMessage0);
+        };
+
         function error400() {
-          $('.message').append('<p class="message">検索文字が入力されていません。</p>');
+          var errorMessage400 = '検索文字が入力されていません。';
+          errorMessageShow(errorMessage400);
+        };
+
+        function error404() {
+          var errorMessage404 = '検索結果が見つかりませんでした。<br>別のキーワードで検索して下さい。';
+          errorMessageShow(errorMessage404);
         };
 
         function error429() {
-          $('.message').append('<p class="message">リクエスト過多です。しばらく時間を置いてからお試しください。</p>');
+          var errorMessage429 = 'リクエスト過多です。しばらく時間を置いてからお試しください。';
+          errorMessageShow(errorMessage429);
         };
 
-        function error_internet_disconnected() {
-          $('.message').append('<p class="message">通信に失敗しました。インターネットの接続をご確認ください。</p>');
+        function error500() {
+          var errorMessage500 = 'システムエラーが発生しています。しばらく時間を置いてからお試しください。';
+          errorMessageShow(errorMessage500);
+        };
+
+        function error503() {
+          var errorMessage503 = 'メンテナンス中です。しばらく時間を置いてからお試しください。';
+          errorMessageShow(errorMessage503);
+        };
+
+        function errorDefault() {
+          var errorMessageDefault = '予期せぬエラーが発生しました。しばらく時間を置いてからお試しください。';
+          errorMessageShow(errorMessageDefault);
         };
       });
       //
